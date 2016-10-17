@@ -27,9 +27,13 @@ type Post struct {
 
 func (db *Resource) postWithID(id int) gin.H {
 	var post Post
-	if db.Map.SelectOne(&post, "SELECT * FROM post WHERE id = ?", id) == nil {
+
+	if err := db.Map.SelectOne(&post, "SELECT * FROM post WHERE id = ?", id); err == nil {
+	
 		return gin.H{"date": post.Date, "dislikes": post.Dislikes, "forum": post.Forum, "id": post.ID, "isApproved": post.IsApproved, "isDeleted": post.IsDeleted, "isEdited": post.IsEdited, "isHighlighted": post.IsHighlighted, "isSpam": post.IsSpam, "likes": post.Likes, "message": post.Message, "parent": post.Parent, "points": post.Points, "thread": post.Thread, "user": post.User}
-	}
+	}else{
+		println(err.Error())
+}
 	return nil
 }
 
@@ -43,9 +47,14 @@ func (db *Resource) postCreate(context *gin.Context) {
 }
 
 func (db *Resource) postDetails(context *gin.Context) {
-	post, _ := strconv.Atoi(context.Query("post"))
+	a := (context.Query("post"))
+	post, err := strconv.Atoi(a)
+	if err != nil{
+		//println("fuck up")
+	}
 	if response := db.postWithID(post); response != nil {
-		for _, entity := range context.Request.URL.Query()["related"] {
+
+		for _ , entity := range context.Request.URL.Query()["related"] {
 			if entity == "user" {
 				response[entity] = db.userWithEmail(response[entity].(string))
 			} else if entity == "thread" {
@@ -56,6 +65,8 @@ func (db *Resource) postDetails(context *gin.Context) {
 		}
 		context.JSON(200, gin.H{"code": 0, "response": response})
 	} else {
+		//println("fuck up")
+
 		context.JSON(200, gin.H{"code": 1, "response": "Post not found"})
 	}
 }

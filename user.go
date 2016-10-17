@@ -19,9 +19,7 @@ func (db *Resource) userWithEmail(email string) gin.H {
 	db.Map.Select(&followers, "SELECT follower FROM follow WHERE followed = ?", email)
 	var following []string
 	db.Map.Select(&following, "SELECT followed FROM follow WHERE follower = ?", email)
-
 	subscriptions := make([]int, 0)
-	//var subs[]string
 	db.Map.Select(&subscriptions, "SELECT thread FROM subscription WHERE user = ?", email)
 	return gin.H{"about": user.About, "email": user.Email, "followers": followers, "following": following, "id": user.ID, "isAnonymous": user.IsAnonymous, "name": user.Name, "subscriptions":subscriptions,  "username": user.Username}
 }
