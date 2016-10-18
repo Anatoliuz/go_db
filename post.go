@@ -52,6 +52,7 @@ func (db *Resource) postCreate(context *gin.Context) {
 
 	if count == 0{
 		db.Map.Exec("INSERT INTO user_forum (user, forum) VALUES(?,?)", post.User, post.Forum)
+		println("DONE inser into user forum")
 
 	}
 	if post.Parent == nil{
@@ -59,6 +60,9 @@ func (db *Resource) postCreate(context *gin.Context) {
 	}else{
 		var tempPost Post
 		err :=db.Map.SelectOne(&tempPost, "SELECT first_path,last_path FROM post WHERE id=?", post.Parent)
+		if err == nil {
+			println("yeee firstpath last path set")
+		}
 		if err != nil {
 			print(err)
 		}

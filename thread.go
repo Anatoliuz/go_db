@@ -66,7 +66,7 @@ func (db *Resource) threadList(context *gin.Context) {
 	query := "SELECT * FROM thread WHERE"
 	if user := context.Query("user"); user != "" {
 		query += " user = " + "\"" + user + "\""
-	} else {
+		} else {
 		query += " forum  = " + "\"" + context.Query("forum") + "\""
 	}
 	if since := context.Query("since"); since != "" {
@@ -82,14 +82,25 @@ func (db *Resource) threadList(context *gin.Context) {
 }
 
 func (db *Resource) threadListPosts(context *gin.Context) {
+
 	query := "SELECT * FROM post WHERE thread = " + context.Query("thread")
+
 	if since := context.Query("since"); since != "" {
 		query += " AND date >= " + "\"" + since + "\""
 	}
-	query += " ORDER BY date " + context.DefaultQuery("order", "desc")
-	if limit := context.Query("limit"); limit != "" {
-		query += " LIMIT " + limit
+
+	if sort := context.Query("flat"); sort != "" && sort != "parent_tree" {
+		query += " ORDER BY date " + context.DefaultQuery("order", "desc")
+		if limit := context.Query("limit"); limit != ""{
+			query += " LIMIT " + limit
+		}
+	}else {
+		query += " ORDER BY first_path, last_path " + context.DefaultQuery("order", "desc")
+		if limit := context.Query("limit"); limit != ""{
+			query += " LIMIT " + limit
+		}
 	}
+
 	var posts []Post
 	db.Map.Select(&posts, query)
 	context.JSON(200, gin.H{"code": 0, "response": posts})

@@ -44,8 +44,9 @@ func (db *Resource) userFollow(context *gin.Context) {
 		Follower string `json:"follower"`
 		Followee string `json:"followee"`
 	}
+
 	context.BindJSON(&params)
-	db.Map.Exec("INSERT INTO follow (follower, followee) VALUES (?, ?)", params.Follower, params.Followee)
+	db.Map.Exec("INSERT IGNORE INTO follow (follower, followed) VALUES (?,?)", params.Follower, params.Followee)
 	context.JSON(200, gin.H{"code": 0, "response": db.userWithEmail(params.Follower)})
 }
 
@@ -102,7 +103,7 @@ func (db *Resource) userListPosts(context *gin.Context) {
 func (db *Resource) userUnfollow(context *gin.Context) {
 	var params struct {
 		Follower string `json:"follower"`
-		Followee string `json:"followed"`
+		Followee string `json:"followee"`
 	}
 	context.BindJSON(&params)
 	db.Map.Exec("DELETE FROM follow WHERE follower = ? AND followed = ?", params.Follower, params.Followee)
