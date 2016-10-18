@@ -23,16 +23,18 @@ type Post struct {
 	Points        int    `db:"points" json:"points"`
 	Thread        int    `db:"thread" json:"thread"`
 	User          string `db:"user" json:"user"`
+	FirstPath     int    `db:"first_path" json:"first_path"`
+	LastPath      string `db:"last_path" json:"last_path"`
 }
 
 func (db *Resource) postWithID(id int) gin.H {
 	var post Post
 
 	if err := db.Map.SelectOne(&post, "SELECT * FROM post WHERE id = ?", id); err == nil {
-	
-		return gin.H{"date": post.Date, "dislikes": post.Dislikes, "forum": post.Forum, "id": post.ID, "isApproved": post.IsApproved, "isDeleted": post.IsDeleted, "isEdited": post.IsEdited, "isHighlighted": post.IsHighlighted, "isSpam": post.IsSpam, "likes": post.Likes, "message": post.Message, "parent": post.Parent, "points": post.Points, "thread": post.Thread, "user": post.User}
+
+		return gin.H{"date": post.Date, "dislikes": post.Dislikes, "forum": post.Forum, "id": post.ID, "isApproved": post.IsApproved, "isDeleted": post.IsDeleted, "isEdited": post.IsEdited, "isHighlighted": post.IsHighlighted, "isSpam": post.IsSpam, "likes": post.Likes, "message": post.Message, "parent": post.Parent, "points": post.Points, "thread": post.Thread, "user": post.User, "first_path": 0, "last_path": ""}
 	}else{
-		println(err.Error())
+		//println(err.Error())
 }
 	return nil
 }
@@ -41,6 +43,38 @@ func (db *Resource) postCreate(context *gin.Context) {
 	var post Post
 	context.BindJSON(&post)
 	result, _ := db.Map.Exec("INSERT INTO post (date, forum, isApproved, isDeleted, isEdited, isHighlighted, isSpam, message, parent, thread, user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", post.Date, post.Forum, post.IsApproved, post.IsDeleted, post.IsEdited, post.IsHighlighted, post.IsSpam, post.Message, post.Parent, post.Thread, post.User)
+	var count int
+	err := db.Map.SelectOne(&count, "SELECT COUNT(*) FROM user_forum where user=? AND forum=?", post.User, post.Forum)
+	if err != nil {
+		println(err)
+	}
+	//println(count)
+
+	if count == 0{
+		db.Map.Exec("INSERT INTO user_forum (user, forum) VALUES(?,?)", post.User, post.Forum)
+
+	}
+	if post.Parent == nil{
+		db.Map.Exec("UPDATE post SET first_path=? WHERE id=?", post.ID, post.ID)
+	}else{
+		var tempPost Post
+		err :=db.Map.SelectOne(&tempPost, "SELECT first_path,last_path FROM post WHERE id=?", post.Parent)
+		if err != nil {
+			print(err)
+		}
+		parentFirstPath := tempPost.FirstPath
+		parentLastPath := tempPost.LastPath
+		if parentLastPath != "" {
+			parentLastPath += "."
+			parentLastPath += strconv.Itoa(post.ID)
+			db.Map.Exec("UPDATE post SET first_path=?, last_path=? WHERE id=?", parentFirstPath,parentLastPath, post.ID )
+
+		}else{
+			db.Map.Exec("UPDATE post SET first_path=?, last_path=? WHERE id=?", parentFirstPath,post.ID, post.ID )
+
+		}
+
+	}
 	id, _ := result.LastInsertId()
 	db.Map.Exec("UPDATE thread SET posts = posts + 1 WHERE id = ?", post.Thread)
 	context.JSON(200, gin.H{"code": 0, "response": gin.H{"date": post.Date, "forum": post.Forum, "id": id, "isApproved": post.IsApproved, "isDeleted": post.IsDeleted, "isEdited": post.IsEdited, "isHighlighted": post.IsHighlighted, "isSpam": post.IsSpam, "message": post.Message, "parent": post.Parent, "thread": post.Thread, "user": post.User}})
@@ -86,7 +120,8 @@ func (db *Resource) postList(context *gin.Context) {
 		query += " LIMIT " + limit
 	}
 	var posts []Post
-	db.Map.Select(&posts, query)
+	_,err := db.Map.Select(&posts, query)
+	print(err)
 	context.JSON(200, gin.H{"code": 0, "response": posts})
 }
 
