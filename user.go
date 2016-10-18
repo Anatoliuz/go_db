@@ -51,7 +51,7 @@ func (db *Resource) userFollow(context *gin.Context) {
 }
 
 func (db *Resource) userListFollowers(context *gin.Context) {
-	query := "SELECT follower FROM follow JOIN user ON follow.follower = user.email WHERE followee = " + "\"" + context.Query("user") + "\""
+	query := "SELECT follower FROM follow JOIN user ON follow.follower = user.email WHERE followed = " + "\"" + context.Query("user") + "\""
 	if sinceID := context.Query("since_id"); sinceID != "" {
 		query += " AND id >= " + sinceID
 	}
