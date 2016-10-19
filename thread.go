@@ -91,14 +91,16 @@ func (db *Resource) threadListPosts(context *gin.Context) {
 	}
 
 	if sort := context.Query("sort"); sort != "" && sort != "parent_tree" {
-		query += " ORDER BY date " + context.DefaultQuery("order", "desc")
-		if limit := context.Query("limit"); limit != ""{
-			query += " LIMIT " + limit
-		}
-	}else {
-		query += " ORDER BY first_path, last_path " + context.DefaultQuery("order", "desc")
-		if limit := context.Query("limit"); limit != ""{
-			query += " LIMIT " + limit
+		if sort == "flat" {
+			query += " ORDER BY date " + context.DefaultQuery("order", "desc")
+			if limit := context.Query("limit"); limit != "" {
+				query += " LIMIT " + limit
+			}
+		} else {
+			query += " ORDER BY first_path, last_path " + context.DefaultQuery("order", "desc")
+			if limit := context.Query("limit"); limit != "" {
+				query += " LIMIT " + limit
+			}
 		}
 	}
 
