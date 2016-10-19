@@ -41,7 +41,8 @@ func (db *Resource) threadClose(context *gin.Context) {
 func (db *Resource) threadCreate(context *gin.Context) {
 	var thread Thread
 	context.BindJSON(&thread)
-	result, _ := db.Map.Exec("INSERT INTO thread (date, forum, isClosed, isDeleted, message, slug, title, user) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", thread.Date, thread.Forum, thread.IsClosed, thread.IsDeleted, thread.Message, thread.Slug, thread.Title, thread.User)
+	result, err := db.Map.Exec("INSERT INTO thread (date, forum, isClosed, isDeleted, message, slug, title, user) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", thread.Date, thread.Forum, thread.IsClosed, thread.IsDeleted, thread.Message, thread.Slug, thread.Title, thread.User)
+	println("err:", err)
 	id, _ := result.LastInsertId()
 	context.JSON(200, gin.H{"code": 0, "response": gin.H{"date": thread.Date, "forum": thread.Forum, "id": id, "isClosed": thread.IsClosed, "isDeleted": thread.IsDeleted, "message": thread.Message, "slug": thread.Slug, "title": thread.Title, "user": thread.User}})
 }
@@ -89,7 +90,7 @@ func (db *Resource) threadListPosts(context *gin.Context) {
 		query += " AND date >= " + "\"" + since + "\""
 	}
 
-	if sort := context.Query("flat"); sort != "" && sort != "parent_tree" {
+	if sort := context.Query("sort"); sort != "" && sort != "parent_tree" {
 		query += " ORDER BY date " + context.DefaultQuery("order", "desc")
 		if limit := context.Query("limit"); limit != ""{
 			query += " LIMIT " + limit
