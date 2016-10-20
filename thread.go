@@ -2,8 +2,8 @@ package main
 
 import (
 	"strconv"
-
 	"github.com/gin-gonic/gin"
+	"sort"
 )
 
 // Thread is a model
@@ -28,7 +28,6 @@ func (db *Resource) threadWithID(id int) gin.H {
 	db.Map.SelectOne(&thread, "SELECT * FROM thread WHERE id = ?", id)
 	return gin.H{"date": thread.Date, "dislikes": thread.Dislikes, "forum": thread.Forum, "id": thread.ID, "isClosed": thread.IsClosed, "isDeleted": thread.IsDeleted, "likes": thread.Likes, "message": thread.Message, "points": thread.Points, "posts": thread.Posts, "slug": thread.Slug, "title": thread.Title, "user": thread.User}
 }
-
 func (db *Resource) threadClose(context *gin.Context) {
 	var params struct {
 		Thread int `json:"thread"`
@@ -83,29 +82,82 @@ func (db *Resource) threadList(context *gin.Context) {
 }
 
 func (db *Resource) threadListPosts(context *gin.Context) {
+	var posts []Post
 
-	query := "SELECT * FROM post WHERE thread = " + context.Query("thread")
+		query := "SELECT * FROM post WHERE thread = " + context.Query("thread")
+		if since := context.Query("since"); since != "" {
+			query += " AND date >= " + "\"" + since + "\""
+		}
 
-	if since := context.Query("since"); since != "" {
-		query += " AND date >= " + "\"" + since + "\""
-	}
-
-	if sort := context.Query("sort"); sort != "" && sort != "parent_tree" {
-		if sort == "flat" {
+		sortType := context.Query("sort")
+	        if sortType == "" {
 			query += " ORDER BY date " + context.DefaultQuery("order", "desc")
 			if limit := context.Query("limit"); limit != "" {
 				query += " LIMIT " + limit
 			}
-		} else {
-			query += " ORDER BY first_path, last_path " + context.DefaultQuery("order", "desc")
+		}else if sortType == "flat" {
+			query += " ORDER BY date " + context.DefaultQuery("order", "desc")
 			if limit := context.Query("limit"); limit != "" {
 				query += " LIMIT " + limit
 			}
+		}else {
+
+			//query := "SELECT * FROM post WHERE thread = " + context.Query("thread")
+			//if since := context.Query("since"); since != "" {
+			//	query += " AND date >= " + "\"" + since + "\""
+			//}
+			//query += " ORDER BY date " + context.DefaultQuery("order", "desc")
+			if limit := context.Query("limit"); limit != "" {
+				query += " LIMIT " + limit
+			}
+
+			//if order := context.Query("order"); order == "asc" {
+			//	sort.Sort(FirstPathASC(FirstPathASC(posts)))
+			//	sort.Sort(LastPathASC(LastPathASC(posts)))
+			//}
+			//order := context.Query("order")
+
+
+
 		}
+		//if err != nil{
+		//	println(err)
+		//}
+		//println("bef")
+		//for _, post := range posts {
+		//	println(post.Forum)
+		//}
+		//println("after")
+		//
+		//sort.Sort(ByAge(posts))
+		//for _, post := range posts {
+		//	println(post.Forum)
+		//}
+		//if sort := context.Query("sort"); sort == "tree" {
+		//	query += " ORDER BY first_path " + context.DefaultQuery("order", "desc")
+		//	if limit := context.Query("limit"); limit != "" {
+		//		query += " LIMIT " + limit
+		//	}
+		//}
+		//if sort := context.Query("sort"); sort == "parent_tree"{
+		//	if limit := context.Query("limit"); limit != "" {
+		//		//query += " LIMIT " +
+		//	err,_ := db.Map.Exec("SELECT p1.* FROM post AS p1 WHERE p1.date >= " + "\"" +  context.Query("since") + "\"" + " AND first_path IN ( SELECT * FROM ( SELECT DISTINCT first_path FROM post WHERE post.id = %d ORDER BY first_index DESC LIMIT limit  ) AS p2) ORDER BY  " + "\"" +  context.Query("limit") + "\"" + " DESC , last_path")
+		//		println(err)
+		//	}
+		//	db.Map.
+		//}
+		//db.Map.Select(&posts, query)
+		//	context.JSON(200, gin.H{"code": 0, "response": posts})
+
+	db.Map.Select(&posts, query)
+	for _, p := range posts{
+		print(p.FirstPath)
+		println(p.LastPath)
 	}
 
-	var posts []Post
-	db.Map.Select(&posts, query)
+	sort.Sort(FirstPathDESC(FirstPathDESC(posts)))
+	sort.Sort(LastPathDESC(LastPathDESC(posts)))
 	context.JSON(200, gin.H{"code": 0, "response": posts})
 }
 

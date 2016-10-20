@@ -2,7 +2,6 @@ package main
 
 import (
 	"strconv"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,7 +18,7 @@ type Post struct {
 	IsSpam        bool   `db:"isSpam" json:"isSpam"`
 	Likes         int    `db:"likes" json:"likes"`
 	Message       string `db:"message" json:"message"`
-	Parent        *int   `db:"parent" json:"parent"`
+	Parent        *int    `db:"parent" json:"parent"`
 	Points        int    `db:"points" json:"points"`
 	Thread        int    `db:"thread" json:"thread"`
 	User          string `db:"user" json:"user"`
@@ -44,41 +43,50 @@ func (db *Resource) postCreate(context *gin.Context) {
 	context.BindJSON(&post)
 	result, _ := db.Map.Exec("INSERT INTO post (date, forum, isApproved, isDeleted, isEdited, isHighlighted, isSpam, message, parent, thread, user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", post.Date, post.Forum, post.IsApproved, post.IsDeleted, post.IsEdited, post.IsHighlighted, post.IsSpam, post.Message, post.Parent, post.Thread, post.User)
 	var count int
+	var posts []Post
+	db.Map.Select(&posts, "SELECT * FROM post")
+	for _, i := range posts{
+		print("KEEEEEK posts' ids")
+		println(i.ID)
+	}
+
 	err := db.Map.SelectOne(&count, "SELECT COUNT(*) FROM user_forum where user=? AND forum=?", post.User, post.Forum)
 	if err != nil {
-		println(err)
+		println("postCreate err ",err)
 	}
-	//println(count)
+	println("COUNT:",count)
 
 	if count == 0{
 		db.Map.Exec("INSERT INTO user_forum (user, forum) VALUES(?,?)", post.User, post.Forum)
 		println("DONE inser into user forum")
 
 	}
-	if post.Parent == nil{
-		db.Map.Exec("UPDATE post SET first_path=? WHERE id=?", post.ID, post.ID)
-	}else{
-		var tempPost Post
-		err :=db.Map.SelectOne(&tempPost, "SELECT first_path,last_path FROM post WHERE id=?", post.Parent)
-		if err == nil {
-			println("yeee firstpath last path set")
-		}
-		if err != nil {
-			print(err)
-		}
-		parentFirstPath := tempPost.FirstPath
-		parentLastPath := tempPost.LastPath
-		if parentLastPath != "" {
-			parentLastPath += "."
-			parentLastPath += strconv.Itoa(post.ID)
-			db.Map.Exec("UPDATE post SET first_path=?, last_path=? WHERE id=?", parentFirstPath,parentLastPath, post.ID )
-
-		}else{
-			db.Map.Exec("UPDATE post SET first_path=?, last_path=? WHERE id=?", parentFirstPath,post.ID, post.ID )
-
-		}
-
+	if post.Parent ==  nil {
+		count, _ := db.Map.Exec("UPDATE  post SET first_path = ?", post.ID)
+		println("FILLING FIRST PATH, err:", count)
 	}
+	//}else{
+	//	var tempPost Post
+	//	err :=db.Map.SelectOne(&tempPost, "SELECT first_path,last_path FROM post WHERE id=?", post.Parent)
+	//	if err == nil {
+	//		println("yeee firstpath last path set")
+	//	}
+	//	if err != nil {
+	//		print(err)
+	//	}
+	//	parentFirstPath := tempPost.FirstPath
+	//	parentLastPath := tempPost.LastPath
+	//	if parentLastPath != "" {
+	//		parentLastPath += "."
+	//		parentLastPath += strconv.Itoa(post.ID)
+	//		db.Map.Exec("UPDATE post SET first_path=?, last_path=? WHERE id=?", parentFirstPath,parentLastPath, post.ID )
+	//
+	//	}else{
+	//		db.Map.Exec("UPDATE post SET first_path=?, last_path=? WHERE id=?", parentFirstPath,post.ID, post.ID )
+	//
+	//	}
+	//
+	//}
 	id, _ := result.LastInsertId()
 	db.Map.Exec("UPDATE thread SET posts = posts + 1 WHERE id = ?", post.Thread)
 	context.JSON(200, gin.H{"code": 0, "response": gin.H{"date": post.Date, "forum": post.Forum, "id": id, "isApproved": post.IsApproved, "isDeleted": post.IsDeleted, "isEdited": post.IsEdited, "isHighlighted": post.IsHighlighted, "isSpam": post.IsSpam, "message": post.Message, "parent": post.Parent, "thread": post.Thread, "user": post.User}})
