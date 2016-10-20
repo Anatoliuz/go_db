@@ -42,36 +42,34 @@ func (db *Resource) postCreate(context *gin.Context){
 	var post Post
 	context.BindJSON(&post)
 	postMap, _ := db.Map.Exec("INSERT INTO post (date, forum, isApproved, isDeleted, isEdited, isHighlighted, isSpam, message, parent, thread, user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", post.Date, post.Forum, post.IsApproved, post.IsDeleted, post.IsEdited, post.IsHighlighted, post.IsSpam, post.Message, post.Parent, post.Thread, post.User)
+	id, _ := postMap.LastInsertId()
+
 	var count int
 	db.Map.SelectOne(&count, "SELECT COUNT(*) FROM user_forum where user=? AND forum=?", post.User, post.Forum)
 	if count == 0{
 		db.Map.Exec("INSERT INTO user_forum (user, forum) VALUES(?,?)", post.User, post.Forum)
-		println("DONE inser into user forum")
 
 	}
 	if post.Parent ==  nil {
-		id, _ := postMap.LastInsertId()
-
-		count, _ := db.Map.Exec("UPDATE  post SET first_path = ? WHERE id = ? ", id,  id )
-		println("FILLING FIRST PATH, err:", count)
+		if _, err := db.Map.Exec("UPDATE  post SET first_path = ? WHERE id = ? ", id,  id ); err != nil{
+			println("FILLING FIRST PATH, err:", err)
+		}
 	}else{
 		var tempPost Post
-		err :=db.Map.SelectOne(&tempPost, "SELECT first_path,last_path FROM post WHERE id=?", post.Parent)
-		if err == nil {
-			println("yeee firstpath last path set")
-		}
-		if err != nil {
-			print(err)
-		}
+		db.Map.SelectOne(&tempPost, "SELECT first_path,last_path FROM post WHERE id=?", post.Parent)
 		parentFirstPath := tempPost.FirstPath
 		parentLastPath := tempPost.LastPath
-		if parentLastPath != "" {
-			parentLastPath += "."
-			parentLastPath += strconv.Itoa(post.ID)
-			db.Map.Exec("UPDATE post SET first_path=?, last_path=? WHERE id=?", parentFirstPath,parentLastPath, post.ID )
+		id_for_str := id
+		if parentLastPath == "" {
+			db.Map.Exec("UPDATE post SET first_path=?, last_path=? WHERE id=?", parentFirstPath, id_for_str ,  id)
 
-		}else{
-			db.Map.Exec("UPDATE post SET first_path=?, last_path=? WHERE id=?", parentFirstPath,post.ID, post.ID )
+		}else {
+			parentLastPath += "."
+			i := id
+			var i64 int64
+			i64 = int64(i)
+			id_str:=strconv.FormatInt(i64, 10)
+			db.Map.Exec("UPDATE post SET first_path=?, last_path=? WHERE id=?", parentFirstPath,id_str, id)
 
 		}
 
@@ -79,7 +77,6 @@ func (db *Resource) postCreate(context *gin.Context){
 
 
 
-	id, _ := postMap.LastInsertId()
 	db.Map.Exec("UPDATE thread SET posts = posts + 1 WHERE id = ?", post.Thread)
 	context.JSON(200, gin.H{"code": 0, "response": gin.H{"date": post.Date, "forum": post.Forum, "id": id, "isApproved": post.IsApproved, "isDeleted": post.IsDeleted, "isEdited": post.IsEdited, "isHighlighted": post.IsHighlighted, "isSpam": post.IsSpam, "message": post.Message, "parent": post.Parent, "thread": post.Thread, "user": post.User}})
 }

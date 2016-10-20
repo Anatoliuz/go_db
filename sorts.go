@@ -32,13 +32,3 @@ func (a LastPathDESC) Swap(i, j int) {
 func (a LastPathDESC) Less(i, j int) bool {
 	return a[i].LastPath > a[j].LastPath
 }
-
-//func sort_tree(posts []Post, str string) {
-//	if str == "ASC" {
-//		sort.Sort(FirstPathASC(posts))
-//		sort.Sort(LastPathASC(posts))
-//	} else {
-//		sort.Sort(FirstPathDESC(posts))
-//		sort.Sort(LastPathDESC(posts))
-//	}
-//}
