@@ -40,8 +40,7 @@ func (db *Resource) threadClose(context *gin.Context) {
 func (db *Resource) threadCreate(context *gin.Context) {
 	var thread Thread
 	context.BindJSON(&thread)
-	result, err := db.Map.Exec("INSERT INTO thread (date, forum, isClosed, isDeleted, message, slug, title, user) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", thread.Date, thread.Forum, thread.IsClosed, thread.IsDeleted, thread.Message, thread.Slug, thread.Title, thread.User)
-	println("err:", err)
+	result, _ := db.Map.Exec("INSERT INTO thread (date, forum, isClosed, isDeleted, message, slug, title, user) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", thread.Date, thread.Forum, thread.IsClosed, thread.IsDeleted, thread.Message, thread.Slug, thread.Title, thread.User)
 	id, _ := result.LastInsertId()
 	context.JSON(200, gin.H{"code": 0, "response": gin.H{"date": thread.Date, "forum": thread.Forum, "id": id, "isClosed": thread.IsClosed, "isDeleted": thread.IsDeleted, "message": thread.Message, "slug": thread.Slug, "title": thread.Title, "user": thread.User}})
 }
@@ -91,35 +90,76 @@ func (db *Resource) threadListPosts(context *gin.Context) {
 	order := context.Query("order")
 
 	sortType := context.Query("sort")
-	if sortType == "" {
-		query += " ORDER BY date " + context.DefaultQuery("order", "desc")
-		if limit := context.Query("limit"); limit != "" {
-			query += " LIMIT " + limit
-		}
-
-
-	} else if sortType == "flat" {
-		query += " ORDER BY date " + context.DefaultQuery("order", "desc")
-		if limit := context.Query("limit"); limit != "" {
-			query += " LIMIT " + limit
-		}
-	}else if sortType == "tree" || sortType == "parent_tree"{
-		if (order == "desc") {
-			query += "ORDER BY first_path DESC, last_path ASC "
+	if sortType != "parent_tree" {
+		if sortType == "" {
+			query += " ORDER BY date " + context.DefaultQuery("order", "desc")
 			if limit := context.Query("limit"); limit != "" {
 				query += " LIMIT " + limit
 			}
-		}
-		if (order == "asc") {
-			query += "ORDER BY first_path ASC, last_path ASC "
+
+		} else if sortType == "flat" {
+			query += " ORDER BY date " + context.DefaultQuery("order", "desc")
 			if limit := context.Query("limit"); limit != "" {
-				query += " LIMIT "+ limit
+				query += " LIMIT " + limit
+			}
+		} else if sortType == "tree" {
+			if (order == "desc") {
+				query += "ORDER BY first_path DESC, last_path ASC "
+				if limit := context.Query("limit"); limit != "" {
+					query += " LIMIT " + limit
+				}
+			}
+			if (order == "asc") {
+				query += "ORDER BY first_path ASC, last_path ASC "
+				if limit := context.Query("limit"); limit != "" {
+					query += " LIMIT " + limit
+				}
 			}
 		}
+		db.Map.Select(&posts, query)
+		context.JSON(200, gin.H{"code": 0, "response": posts})
 	}
-	db.Map.Select(&posts, query)
+	if sortType == "parent_tree"{
+		var postsTemp []Post
+		var resultPosts []Post
 
-	context.JSON(200, gin.H{"code": 0, "response": posts})
+		query += "ORDER BY first_path ASC"
+		query += ", last_path ASC"
+		limit := context.Query("limit")
+		db.Map.Select(&postsTemp, query)
+		currentParentFirstPath := -1
+		limitInt, _ := strconv.Atoi(limit)
+		counter := 0
+		for i := 0; i < len(postsTemp); i++{
+
+			if currentParentFirstPath !=  postsTemp[i].FirstPath  {
+				currentParentFirstPath = postsTemp[i].FirstPath
+				counter++
+			}
+			if counter > limitInt {
+
+				break;
+			}
+
+
+			resultPosts = append(resultPosts, postsTemp[i])
+			//if countNesting(postsTemp[i].LastPath) > limitInt{
+			//	//delete
+			//	print("limit:")
+			//	println(limitInt)
+			//	print(postsTemp[i].FirstPath)
+			//	println(postsTemp[i].LastPath)
+			//}
+
+		}
+		for i := 0; i < len(resultPosts); i++{
+			print(resultPosts[i].FirstPath)
+			println(resultPosts[i].LastPath)
+		}
+
+		context.JSON(200, gin.H{"code": 0, "response": resultPosts})
+
+	}
 }
 func (db *Resource) threadOpen(context *gin.Context) {
 	var params struct {

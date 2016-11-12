@@ -60,7 +60,8 @@ func (db *Resource) postCreate(context *gin.Context){
 			i := id
 			var i64 int
 			i64 = int(i)
-			mathPathId := makeMathPathBetweenDots(i64)
+			mathPathId :="."
+			mathPathId += makeMathPathBetweenDots(i64)
 			db.Map.Exec("UPDATE post SET first_path = ?, last_path=? WHERE id=?", parentFirstPath, mathPathId, id)
 		} else {
 			parentLastPath += "."
@@ -116,8 +117,7 @@ func (db *Resource) postList(context *gin.Context) {
 		query += " LIMIT " + limit
 	}
 	var posts []Post
-	_,err := db.Map.Select(&posts, query)
-	print(err)
+	db.Map.Select(&posts, query)
 	context.JSON(200, gin.H{"code": 0, "response": posts})
 }
 
