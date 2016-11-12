@@ -2,8 +2,8 @@ package main
 
 import (
 	"strconv"
-
 	"github.com/gin-gonic/gin"
+	_"sort"
 )
 
 // Thread is a model
@@ -28,7 +28,6 @@ func (db *Resource) threadWithID(id int) gin.H {
 	db.Map.SelectOne(&thread, "SELECT * FROM thread WHERE id = ?", id)
 	return gin.H{"date": thread.Date, "dislikes": thread.Dislikes, "forum": thread.Forum, "id": thread.ID, "isClosed": thread.IsClosed, "isDeleted": thread.IsDeleted, "likes": thread.Likes, "message": thread.Message, "points": thread.Points, "posts": thread.Posts, "slug": thread.Slug, "title": thread.Title, "user": thread.User}
 }
-
 func (db *Resource) threadClose(context *gin.Context) {
 	var params struct {
 		Thread int `json:"thread"`
@@ -83,29 +82,46 @@ func (db *Resource) threadList(context *gin.Context) {
 }
 
 func (db *Resource) threadListPosts(context *gin.Context) {
+	var posts []Post
 
-	query := "SELECT * FROM post WHERE thread = " + context.Query("thread")
+		query := "SELECT * FROM post WHERE thread = " + context.Query("thread")
+		if since := context.Query("since"); since != "" {
+			query += " AND date >= " + "\"" + since + "\""
+		}
 
-	if since := context.Query("since"); since != "" {
-		query += " AND date >= " + "\"" + since + "\""
-	}
-
-	if sort := context.Query("sort"); sort != "" && sort != "parent_tree" {
-		if sort == "flat" {
+		sortType := context.Query("sort")
+	        if sortType == "" {
 			query += " ORDER BY date " + context.DefaultQuery("order", "desc")
 			if limit := context.Query("limit"); limit != "" {
 				query += " LIMIT " + limit
 			}
-		} else {
-			query += " ORDER BY first_path, last_path " + context.DefaultQuery("order", "desc")
+		}else if sortType == "flat" {
+			query += " ORDER BY date " + context.DefaultQuery("order", "desc")
 			if limit := context.Query("limit"); limit != "" {
 				query += " LIMIT " + limit
 			}
+		}else {
+
+		}
+
+
+	db.Map.Select(&posts, query)
+	order := context.Query("order")
+
+	if r:= context.Query("sort"); r=="tree" || r == "parent_tree"{
+		if(order == "desc"){
+			query += "ORDER BY last_path DESC "
+			if limit := context.Query("limit"); limit != "" {
+				query += " LIMIT " + limit
+			}
+			db.Map.Select(&posts, query)
+			//sort.Sort(LastPathDESC(LastPathDESC(posts)))
+
+		} else {
+			//sort.Sort(LastPathASC(LastPathASC(posts)))
+
 		}
 	}
-
-	var posts []Post
-	db.Map.Select(&posts, query)
 	context.JSON(200, gin.H{"code": 0, "response": posts})
 }
 

@@ -1,4 +1,4 @@
-CREATE DATABASE IF NOT EXISTS `TPForum`;
+ CREATE DATABASE IF NOT EXISTS `TPForum`;
 USE `TPForum`;
 
 DROP TABLE IF EXISTS `follow`;
@@ -43,13 +43,12 @@ CREATE TABLE `post` (
   `forum` varchar(150) NOT NULL,
   `thread` int(11) NOT NULL,
   `user` varchar(150) NOT NULL,
-  `first_path` int(11) NOT NULL DEFAULT '0',
   `last_path` varchar(150) NOT NULL DEFAULT '',
   PRIMARY KEY (`id`),
   UNIQUE KEY `id_UNIQUE` (`id`),
   KEY `post_forum_date` (`forum`,`date`),
   KEY `post_thread_date` (`thread`,`date`),
-  KEY `post_thread_fpath_lpath` (`thread`,`first_path`,`last_path`),
+  KEY `post_thread_fpath_lpath` (`thread`, `last_path`),
   KEY `post_user_date` (`user`,`date`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1000001 DEFAULT CHARSET=utf8;
 

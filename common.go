@@ -9,6 +9,8 @@ func (db *Resource) commonClear(context *gin.Context) {
 	db.Map.Exec("TRUNCATE TABLE follow")
 	db.Map.Exec("TRUNCATE TABLE thread")
 	db.Map.Exec("TRUNCATE TABLE subscription")
+	db.Map.Exec("TRUNCATE TABLE user_forum")
+
 	context.JSON(200, gin.H{"code": 0, "response": "OK"})
 }
 
