@@ -22,6 +22,7 @@ type Post struct {
 	Points        int    `db:"points" json:"points"`
 	Thread        int    `db:"thread" json:"thread"`
 	User          string `db:"user" json:"user"`
+	FirstPath     int    `db:"first_path" json:"first_path"`
 	LastPath      string `db:"last_path" json:"last_path"`
 }
 
@@ -48,25 +49,29 @@ func (db *Resource) postCreate(context *gin.Context){
 	if count == 0{
 		db.Map.Exec("INSERT INTO user_forum (user, forum) VALUES(?,?)", post.User, post.Forum)
 	}
-
-	var tempPost Post
-	db.Map.SelectOne(&tempPost, "SELECT last_path FROM post WHERE id=?", post.Parent)
-	parentLastPath := tempPost.LastPath
-	if parentLastPath == ""{
-		i := id
-		var i64 int
-		i64 = int(i)
-		mathPathId := makeMathPathBetweenDots(i64)
-		db.Map.Exec("UPDATE post SET last_path=? WHERE id=?", mathPathId ,  id)
-		}else {
+	if post.Parent == nil {
+		db.Map.Exec("UPDATE post SET first_path=? WHERE id=?", id, id)
+	}else {
+		var tempPost Post
+		db.Map.SelectOne(&tempPost, "SELECT first_path, last_path FROM post WHERE id=?", post.Parent)
+		parentFirstPath := tempPost.FirstPath
+		parentLastPath := tempPost.LastPath
+		if parentLastPath == "" {
+			i := id
+			var i64 int
+			i64 = int(i)
+			mathPathId := makeMathPathBetweenDots(i64)
+			db.Map.Exec("UPDATE post SET first_path = ?, last_path=? WHERE id=?", parentFirstPath, mathPathId, id)
+		} else {
 			parentLastPath += "."
 			i := id
 			var i64 int
 			i64 = int(i)
 			mathPathId := makeMathPathBetweenDots(i64)
 			parentLastPath += mathPathId
-			db.Map.Exec("UPDATE post SET last_path=? WHERE id=?", parentLastPath, id)
+			db.Map.Exec("UPDATE post SET first_path = ?, last_path=? WHERE id=?", parentFirstPath, parentLastPath, id)
 		}
+	}
 	db.Map.Exec("UPDATE thread SET posts = posts + 1 WHERE id = ?", post.Thread)
 	context.JSON(200, gin.H{"code": 0, "response": gin.H{"date": post.Date, "forum": post.Forum, "id": id, "isApproved": post.IsApproved, "isDeleted": post.IsDeleted, "isEdited": post.IsEdited, "isHighlighted": post.IsHighlighted, "isSpam": post.IsSpam, "message": post.Message, "parent": post.Parent, "thread": post.Thread, "user": post.User}})
 }

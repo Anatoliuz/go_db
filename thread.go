@@ -84,47 +84,43 @@ func (db *Resource) threadList(context *gin.Context) {
 func (db *Resource) threadListPosts(context *gin.Context) {
 	var posts []Post
 
-		query := "SELECT * FROM post WHERE thread = " + context.Query("thread")
-		if since := context.Query("since"); since != "" {
-			query += " AND date >= " + "\"" + since + "\""
-		}
-
-		sortType := context.Query("sort")
-	        if sortType == "" {
-			query += " ORDER BY date " + context.DefaultQuery("order", "desc")
-			if limit := context.Query("limit"); limit != "" {
-				query += " LIMIT " + limit
-			}
-		}else if sortType == "flat" {
-			query += " ORDER BY date " + context.DefaultQuery("order", "desc")
-			if limit := context.Query("limit"); limit != "" {
-				query += " LIMIT " + limit
-			}
-		}else {
-
-		}
-
-
-	db.Map.Select(&posts, query)
+	query := "SELECT * FROM post WHERE thread = " + context.Query("thread")
+	if since := context.Query("since"); since != "" {
+		query += " AND date >= " + "\"" + since + "\""
+	}
 	order := context.Query("order")
 
-	if r:= context.Query("sort"); r=="tree" || r == "parent_tree"{
-		if(order == "desc"){
-			query += "ORDER BY last_path DESC "
+	sortType := context.Query("sort")
+	if sortType == "" {
+		query += " ORDER BY date " + context.DefaultQuery("order", "desc")
+		if limit := context.Query("limit"); limit != "" {
+			query += " LIMIT " + limit
+		}
+
+
+	} else if sortType == "flat" {
+		query += " ORDER BY date " + context.DefaultQuery("order", "desc")
+		if limit := context.Query("limit"); limit != "" {
+			query += " LIMIT " + limit
+		}
+	}else if sortType == "tree" || sortType == "parent_tree"{
+		if (order == "desc") {
+			query += "ORDER BY first_path DESC, last_path ASC "
 			if limit := context.Query("limit"); limit != "" {
 				query += " LIMIT " + limit
 			}
-			db.Map.Select(&posts, query)
-			//sort.Sort(LastPathDESC(LastPathDESC(posts)))
-
-		} else {
-			//sort.Sort(LastPathASC(LastPathASC(posts)))
-
+		}
+		if (order == "asc") {
+			query += "ORDER BY first_path ASC, last_path ASC "
+			if limit := context.Query("limit"); limit != "" {
+				query += " LIMIT "+ limit
+			}
 		}
 	}
+	db.Map.Select(&posts, query)
+
 	context.JSON(200, gin.H{"code": 0, "response": posts})
 }
-
 func (db *Resource) threadOpen(context *gin.Context) {
 	var params struct {
 		Thread int `json:"thread"`
